@@ -14,6 +14,9 @@ This module demonstrates:
 """
 import re
 
+# Global configuration
+PASS_THRESHOLD = 50  # uniform pass threshold across tasks
+
 # ============================================================================
 # TASK 1: DATA PARSING & PROFILE CLEANING (5 marks)
 # ============================================================================
@@ -41,13 +44,11 @@ def clean_student_data(raw_students):
         marks = [int(m.strip()) for m in student["marks_str"].split(",")]
         
         # Step 4: Validate name (alphabetic characters and spaces only)
-        is_valid = all(c.isalpha() or c.isspace() for c in student["name"])
-        
-        if is_valid:
-            validation_status = "✓ Valid name"
-        else:
-            validation_status = "✗ Invalid name"
-        
+        raw_name = student.get("name", "")
+        stripped_name = raw_name.strip()
+        is_valid = all(c.isalpha() or c.isspace() for c in stripped_name)
+
+        validation_status = "Valid name" if is_valid else "Invalid name"
         print(validation_status)
         
         # Step 5: Print formatted profile card using f-strings
@@ -156,6 +157,56 @@ def compute_class_statistics(students):
 
 
 # ============================================================================
+# TASK 3: CLASS PERFORMANCE SUMMARY (7 marks)
+# ============================================================================
+
+
+def task3_class_performance(class_data):
+    """
+    Given class_data as a list of tuples (name, marks_list), compute and print:
+    - Average per student (2 decimals)
+    - Status: Pass if average >= 60 else Fail
+    - Formatted table
+    - Number of pass/fail, class topper and class average
+    """
+    rows = []
+    for name, marks in class_data:
+        avg = round(sum(marks) / len(marks), 2) if marks else 0.0
+        status = "Pass" if avg >= PASS_THRESHOLD else "Fail"
+        rows.append((name, avg, status))
+
+    # Print formatted table
+    print("\n" + "=" * 50)
+    print("TASK 3 — Class Performance Summary")
+    print("=" * 50)
+    print(f"{'Name':25} | {'Average':7} | {'Status'}")
+    print('-' * 50)
+    for name, avg, status in rows:
+        print(f"{name:25} | {avg:7.2f} | {status}")
+
+    # Post-table metrics
+    pass_count = sum(1 for _, avg, s in rows if s == 'Pass')
+    fail_count = sum(1 for _, avg, s in rows if s == 'Fail')
+    topper = max(rows, key=lambda r: r[1]) if rows else (None, None, None)
+    class_avg = round(sum(r[1] for r in rows) / len(rows), 2) if rows else 0.0
+
+    print("\nSummary:")
+    print(f"Passed students : {pass_count}")
+    print(f"Failed students : {fail_count}")
+    if topper and topper[0]:
+        print(f"Class topper    : {topper[0]} -> {topper[1]:.2f}")
+    print(f"Class average   : {class_avg:.2f}")
+
+    return {
+        'rows': rows,
+        'passed': pass_count,
+        'failed': fail_count,
+        'topper': topper,
+        'class_average': class_avg,
+    }
+
+
+# ============================================================================
 # TASK 2: MARKS ANALYSIS (loops + conditionals) - integrated for submission
 # ============================================================================
 
@@ -169,7 +220,9 @@ def grade_label(mark: int) -> str:
         return "B"
     if 60 <= mark <= 69:
         return "C"
-    if 0 <= mark <= 59:
+    if 50 <= mark <= 59:
+        return "D"
+    if 0 <= mark <= 49:
         return "F"
     return "Invalid"
 
@@ -386,6 +439,66 @@ def task_4_string_utility(clean_essay: str):
         if not re.search(r'[.!?]$', sentence):
             sentence = sentence + '.'
         print(f"{i}. {sentence}")
+
+
+def task4_full_pipeline(essay: str):
+    """
+    Full Task 4 pipeline as required by the assignment.
+    Steps:
+    1. Strip leading/trailing whitespace -> clean_essay
+    2. Convert clean_essay to Title Case and print
+    3. Count occurrences of 'python' (case-insensitive)
+    4. Replace every occurrence of 'python' in clean_essay with 'Python 🐍' and print
+    5. Split clean_essay into sentences and ensure each ends with punctuation
+    6. Print numbered sentences
+    Returns a dict of intermediate results for testing
+    """
+    print("\n" + "=" * 50)
+    print("TASK 4 — Full String Manipulation Pipeline")
+    print("=" * 50)
+
+    # Step 1: strip
+    clean_essay = essay.strip()
+    print("1) Clean essay (stripped):")
+    print(clean_essay)
+
+    # Step 2: Title Case
+    title_case = clean_essay.title()
+    print("\n2) Title Case version:")
+    print(title_case)
+
+    # Step 3: Count 'python' (case-insensitive)
+    count_python = len(re.findall(r"python", clean_essay, flags=re.IGNORECASE))
+    print(f"\n3) Occurrences of the word 'python' (case-insensitive): {count_python}")
+
+    # Step 4: Replace occurrences with emoji-tagged 'Python 🐍'
+    # Use regex with word boundaries to avoid partial matches
+    replaced = re.sub(r"\bpython\b", "Python 🐍", clean_essay, flags=re.IGNORECASE)
+    print("\n4) Replaced essay (every 'python' -> 'Python 🐍'):")
+    print(replaced)
+
+    # Step 5: Split into sentences (period, exclamation, question)
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', replaced) if s.strip()]
+
+    # Ensure punctuation at sentence end
+    normalized = []
+    for s in sentences:
+        if not re.search(r'[.!?]$', s):
+            s = s + '.'
+        normalized.append(s)
+
+    # Step 6: Print numbered sentences
+    print("\n5) Numbered sentences:")
+    for i, s in enumerate(normalized, 1):
+        print(f"{i}. {s}")
+
+    return {
+        'clean_essay': clean_essay,
+        'title_case': title_case,
+        'count_python': count_python,
+        'replaced': replaced,
+        'sentences': normalized,
+    }
 
 
 
